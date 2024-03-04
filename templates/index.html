@@ -6,8 +6,8 @@
 </head>
 <body>
     {% for job in jobs: %}
-        <h3>Action # {{i + 1}}</h3>
-        <table>
+        <h3>Action # {{job.id}}</h3>
+        <table border="1">
             <tr>
                 <td>Title of activity</td>
                 <td>Team leader</td>
@@ -18,7 +18,7 @@
             <tr>
                 <td>{{ job.job }}</td>
                 <td>{{ job.team_leader }}</td>
-                <td>{{ job.start_date }}</td>
+                <td>{{ job.work_size }} hours</td>
                 <td>{{ job.collaborators }}</td>
                 {% if job.is_finished %}
                     <td>is finished</td>
