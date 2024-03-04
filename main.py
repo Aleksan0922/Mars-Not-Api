@@ -1,7 +1,7 @@
 from flask import Flask
-from data import db_session
-from data.users import User
+from flask import render_template, request, redirect
 from data.jobs import Jobs
+from data import db_session
 import datetime
 
 app = Flask(__name__)
@@ -11,50 +11,17 @@ db_session.global_init("db/mars_explorer.db")
 
 
 def main():
-    user = User()
-    user.surname = "Scott"
-    user.name = "Ridley"
-    user.age = 21
-    user.position = "captain"
-    user.speciality = "research engineer"
-    user.address = "module_1"
-    user.email = "scott_chief@mars.org"
-    user.hashed_password = "yamete_kudasai"
-    user.modified_date = datetime.datetime.now()
+    app.run(host='127.0.0.1', port=5000)
 
-    user1 = User()
-    user1.surname = "yqgyuqug"
-    user1.name = "sdfdsgsf"
-    user1.age = 14
-    user1.position = "qwerttt"
-    user1.speciality = "Пользоgghrhfnfватель"
-    user1.address = "porhorjbmepv"
-    user1.email = "email@email.ru"
-    user1.hashed_password = "howefhocnjncoe"
-    user1.modified_date = datetime.datetime.now()
 
-    user2 = User()
-    user2.surname = "dfjonef"
-    user2.name = "wevervev"
-    user2.age = 9999999
-    user2.position = "tyntyhtynt"
-    user2.speciality = "rtberbetb"
-    user2.address = "porhoynydyfddesftbyrrjbmepv"
-    user2.email = "email@email.com"
-    user2.hashed_password = "dead_inside"
-    user2.modified_date = datetime.datetime.now()
+@app.route('/')
+def promotion_image():
+    db_session.global_init('db/mars_explorer.db')
+    db_sess = db_session.create_session()
+    return render_template('index.html', jobs=db_sess.query(Jobs).all(), i=0)
 
-    user3 = User()
-    user3.surname = "hdttymrtmu"
-    user3.name = "dymr5udrmu"
-    user3.age = 1
-    user3.position = "effibevore"
-    user3.speciality = "eoknvorbnob"
-    user3.address = "kjdoepjve"
-    user3.email = "email@emil.ru"
-    user3.hashed_password = "nagibator228"
-    user3.modified_date = datetime.datetime.now()
 
+if __name__ == '__main__':
     job = Jobs()
     job.team_leader = 1
     job.job = 'deployment of residential modules 1 and 2'
@@ -63,16 +30,15 @@ def main():
     job.start_date = datetime.datetime.now()
     job.is_finished = False
 
+    job1 = Jobs()
+    job1.team_leader = 2
+    job1.job = 'deployment of residential modules 3 and 2'
+    job1.work_size = 18
+    job1.collaborators = '1, 3'
+    job1.start_date = datetime.datetime.now()
+    job1.is_finished = False
+
     db_sess = db_session.create_session()
     db_sess.add(job)
     db_sess.commit()
-    db_sess.add(user)
-    db_sess.add(user1)
-    db_sess.add(user2)
-    db_sess.add(user3)
-    db_sess.commit()
-    app.run()
-
-
-if __name__ == '__main__':
     main()

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% for job in jobs: %}
+        <h3>Action # {{i + 1}}</h3>
+        <table>
+            <tr>
+                <td>Title of activity</td>
+                <td>Team leader</td>
+                <td>Duration</td>
+                <td>List of collaborators</td>
+                <td>Is finised</td>
+            </tr>
+            <tr>
+                <td>{{ job.job }}</td>
+                <td>{{ job.team_leader }}</td>
+                <td>{{ job.start_date }}</td>
+                <td>{{ job.collaborators }}</td>
+                {% if job.is_finished %}
+                    <td>is finished</td>
+                {% else %}
+                    <td> is not <br> finished</td>
+                {% endif %}
+            </tr>
+        </table>
+    {% endfor %}
+</body>
+</html>
