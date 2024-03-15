@@ -6,7 +6,7 @@
         <div>
             {{ form.csrf_token }}
         </div>
-        {% for field in form if field.name != 'csrf_token' %}
+        {% for field in form if field.name != 'csrf_token' or field.name != 'submit'%}
             <div>
                 {{ field.label() }}
                 {{ field() }}

@@ -2,8 +2,9 @@
 
 {% block content %}
     {% if current_user.is_authenticated %}
-        <a href="news" class="btn btn-secondary">Добавить новость</a>
+        <a href="/add_job" class="btn btn-secondary">Добавить работу</a>
     {% endif %}
+    <a href="/departments" class="btn btn-secondary">Перейти к списку отделов</a>
     {% for job in jobs: %}
         <h3>Action # {{job.id}}</h3>
         <table border="1">
@@ -26,7 +27,7 @@
                 {% endif %}
             </tr>
         </table>
-        {% if current_user.is_authenticated and current_user.id == 1 %}
+        {% if current_user.is_authenticated and (current_user.id == 1 or current_user.id == job.team_leader.data) %}
             <div>
                 <a href="/job_edit/{{ job.id }}" class="btn btn-warning">
                     Изменить

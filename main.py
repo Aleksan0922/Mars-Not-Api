@@ -1,22 +1,22 @@
-from flask import Flask, abort, make_response, jsonify
-from flask import render_template, request, redirect
-from wtforms.fields.simple import StringField
-
+from flask import make_response, jsonify
 from data.jobs import Jobs
 from data import db_session, jobs_api
 import datetime
 from wtforms import EmailField, PasswordField, BooleanField, SubmitField, IntegerField, DateTimeField
 from wtforms.validators import DataRequired
-from flask_wtf import FlaskForm
-from flask import Flask
-from flask import render_template, request, redirect
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from data.users import User
-from data import db_session
+from wtforms.fields.simple import StringField
 
+from flask import Flask, abort
+from flask import render_template, request, redirect
+from flask_wtf import FlaskForm
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_restful import reqparse, abort, Api, Resource
+from data.users import User
+from data.users_resource import UsersResource, UsersListResource
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+api = Api(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -37,7 +37,7 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Войти')
 
 
-class AddJobForm(FlaskForm):
+class JobForm(FlaskForm):
     team_leader = IntegerField('Id капитана', validators=[DataRequired()])
     job = StringField('Описание работы', validators=[DataRequired()])
     work_size = IntegerField('Продолжительность работы', validators=[DataRequired()])
@@ -46,6 +46,15 @@ class AddJobForm(FlaskForm):
     end_date = DateTimeField('Конец работ')
     is_finished = BooleanField('Закончено ли дело')
     submit = SubmitField('Добавить')
+
+
+class DepartmentForm(FlaskForm):
+    chief = IntegerField('Id капитана', validators=[DataRequired()])
+    title = StringField('Описание отдела', validators=[DataRequired()])
+    members = StringField('Id сотрудников', validators=[DataRequired()])
+    email = EmailField('Почта отдела', validators=[DataRequired()])
+    submit = SubmitField('Добавить')
+
 
 @app.route('/')
 def index():
@@ -56,7 +65,7 @@ def index():
 
 @app.route('/add_job', methods=['GET', 'POST'])
 def add_job():
-    form = AddJobForm()
+    form = JobForm()
     if form.validate_on_submit():
         job = Jobs()
         job.team_leader = form.team_leader.data
@@ -77,10 +86,11 @@ def add_job():
 @app.route('/job_edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_jobs(id):
-    form = AddJobForm()
+    form = JobForm()
     if request.method == "GET":
         db_sess = db_session.create_session()
-        jobs = db_sess.query(Jobs).filter(Jobs.id == id).first()
+        jobs = db_sess.query(Jobs).filter(Jobs.id == id, current_user.id == 1 |
+                                          current_user.id == Jobs.team_leader).first()
         if jobs:
             form.team_leader.data = jobs.team_leader
             form.job.data = jobs.job
@@ -93,7 +103,8 @@ def edit_jobs(id):
             abort(404)
     if form.validate_on_submit():
         db_sess = db_session.create_session()
-        jobs = db_sess.query(Jobs).filter(Jobs.id == id).first()
+        jobs = db_sess.query(Jobs).filter(Jobs.id == id, current_user.id == 1 |
+                                          current_user.id == Jobs.team_leader).first()
         if jobs:
             jobs.team_leader = form.team_leader.data
             jobs.job = form.job.data
@@ -124,6 +135,14 @@ def jobs_delete(id):
         abort(404)
     return redirect('/')
 
+
+@app.route('/departments')
+def departments():
+    db_session.global_init('db/mars_explorer.db')
+    db_sess = db_session.create_session()
+    return render_template('departments.html', jobs=db_sess.query(Jobs).all(), i=0)
+
+
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
@@ -153,9 +172,11 @@ def login():
 
 
 
-@app.errorhandler(404)
-def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+def abort_if_jobs_not_found(jobs_id):
+    session = db_session.create_session()
+    jobs = session.query(Jobs).get(jobs_id)
+    if not jobs:
+        abort(404, message=f"Jobs {jobs_id} not found")
 
 
 @app.errorhandler(400)
@@ -164,4 +185,9 @@ def bad_request(_):
 
 
 if __name__ == '__main__':
+    # для списка объектов
+    api.add_resource(UsersListResource, '/api/v2/users')
+
+    # для одного объекта
+    api.add_resource(UsersResource, '/api/v2/user/<int:user_id>')
     main()
