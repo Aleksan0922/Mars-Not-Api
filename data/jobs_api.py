@@ -1,5 +1,7 @@
-import flask
+from datetime import datetime
 from flask import jsonify, make_response, request
+
+import flask
 
 from data import db_session
 from data.jobs import Jobs
@@ -52,8 +54,8 @@ def create_jobs():
         job=request.json['job'],
         work_size=request.json['work_size'],
         collaborators=request.json['collaborators'],
-        start_date=request.json['start_date'],
-        end_date=request.json['end_date'],
+        start_date=datetime.strptime(request.json['start_date'], "%Y-%m-%d %H:%M:%S"),
+        end_date=datetime.strptime(request.json['end_date'], "%Y-%m-%d %H:%M:%S"),
         is_finished=request.json['is_finished']
     )
     db_sess.add(jobs)
@@ -73,23 +75,23 @@ def delete_jobs(jobs_id):
 
 
 @blueprint.route('/api/jobs/<int:jobs_id>', methods=['POST'])
-def edit_jobs():
+def edit_jobs(jobs_id):
     if not request.json:
         return make_response(jsonify({'error': 'Empty request'}), 400)
     elif not all(key in request.json for key in
                  ['team_leader', 'job', 'work_size', 'collaborators', 'start_date', 'end_date', 'is_finished']):
         return make_response(jsonify({'error': 'Bad request'}), 400)
     db_sess = db_session.create_session()
-    print(1)
-    jobs = Jobs(
-        team_leader=request.json['team_leader'],
-        job=request.json['job'],
-        work_size=request.json['work_size'],
-        collaborators=request.json['collaborators'],
-        start_date=request.json['start_date'],
-        end_date=request.json['end_date'],
-        is_finished=request.json['is_finished']
-    )
+    jobs = db_sess.query(Jobs).filter(Jobs.id == jobs_id).first()
+    if jobs:
+        jobs.team_leader = request.json['team_leader'],
+        jobs.job = request.json['job'],
+        jobs.work_size = request.json['work_size'],
+        jobs.collaborators = request.json['collaborators'],
+        jobs.start_date = datetime.strptime(request.json['start_date'], "%Y-%m-%d %H:%M:%S"),
+        jobs.end_date = datetime.strptime(request.json['end_date'], "%Y-%m-%d %H:%M:%S"),
+        jobs.is_finished = request.json['is_finished']
+        db_sess.commit()
     db_sess.add(jobs)
     db_sess.commit()
     return jsonify({'id': jobs.id})

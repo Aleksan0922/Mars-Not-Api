@@ -1,10 +1,11 @@
 from flask import make_response, jsonify
 from data.jobs import Jobs
-from data import db_session, jobs_api
+from data import db_session, jobs_api, users_api
 import datetime
 from wtforms import EmailField, PasswordField, BooleanField, SubmitField, IntegerField, DateTimeField
 from wtforms.validators import DataRequired
-from wtforms.fields.simple import StringField
+from wtforms.fields.simple import StringField, TextAreaField
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask import Flask, abort
 from flask import render_template, request, redirect
@@ -29,6 +30,7 @@ db_session.global_init("db/mars_explorer.db")
 def main():
     db_session.global_init("db/mars_explorer.db")
     app.register_blueprint(jobs_api.blueprint)
+    app.register_blueprint(users_api.blueprint)
     app.run(host='127.0.0.1', port=5000)
 
 
@@ -36,6 +38,15 @@ class LoginForm(FlaskForm):
     email = EmailField('Почта', validators=[DataRequired()])
     password = PasswordField('Пароль', validators=[DataRequired()])
     remember_me = BooleanField('Запомнить меня')
+    submit = SubmitField('Войти')
+
+
+class RegisterForm(FlaskForm):
+    email = EmailField('Почта', validators=[DataRequired()])
+    password = PasswordField('Пароль', validators=[DataRequired()])
+    password_again = PasswordField('Повторите пароль', validators=[DataRequired()])
+    name = StringField('Имя пользователя', validators=[DataRequired()])
+    about = TextAreaField("Немного о себе")
     submit = SubmitField('Войти')
 
 
@@ -92,7 +103,7 @@ def edit_jobs(id):
     if request.method == "GET":
         db_sess = db_session.create_session()
         jobs = db_sess.query(Jobs).filter(Jobs.id == id, current_user.id == 1 |
-                                          current_user.id == Jobs.team_leader).first()
+                                          current_user.id == Jobs.creator_id).first()
         if jobs:
             form.team_leader.data = jobs.team_leader
             form.job.data = jobs.job
@@ -129,7 +140,8 @@ def edit_jobs(id):
 @login_required
 def jobs_delete(id):
     db_sess = db_session.create_session()
-    jobs = db_sess.query(Jobs).filter(Jobs.id == id).first()
+    jobs = db_sess.query(Jobs).filter(Jobs.id == id, current_user.id == 1 |
+                                      current_user.id == Jobs.team_leader).first()
     if jobs:
         db_sess.delete(jobs)
         db_sess.commit()
@@ -156,6 +168,31 @@ def load_user(user_id):
 def logout():
     logout_user()
     return redirect("/")
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def reqister():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        if form.password.data != form.password_again.data:
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Пароли не совпадают")
+        db_sess = db_session.create_session()
+        if db_sess.query(User).filter(User.email == form.email.data).first():
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Такой пользователь уже есть")
+        user = User(
+            name=form.name.data,
+            email=form.email.data,
+            about=form.about.data
+        )
+        user.set_password(form.password.data)
+        db_sess.add(user)
+        db_sess.commit()
+        return redirect('/login')
+    return render_template('register.html', title='Регистрация', form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
